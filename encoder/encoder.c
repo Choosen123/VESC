@@ -970,18 +970,31 @@ static void timer_start(routine_rate_t rate) {
  */
 /**************************************************************************************************/
 void encoder_multiturn_calc(void) {
+    static bool is_first = true;
+    static float mul_pos_filtered = 0.0f;
+
 	pos_temp = mc_interface_get_pid_pos_now();
-	if (pos_temp > 359 && pos_temp_pre < 1)
-		mul_pos_base -= 360;
-	else if (pos_temp < 1 && pos_temp_pre > 359)
-		mul_pos_base += 360;
-	pos_temp_pre = pos_temp;
-	mul_pos = mul_pos_base + pos_temp;
-	if (mul_pos - mul_pos_last > 1.0f) {
-		mul_pos = mul_pos_last;
-	} else {
-		mul_pos_last = mul_pos;
+
+	if(is_first){
+        pos_temp_pre = pos_temp;
+        mul_pos_filtered = pos_temp;
+    	is_first = false;
 	}
+
+	float diff = pos_temp - pos_temp_pre;
+	if(diff > 180.0f){
+    	mul_pos_base -= 360;
+	}
+	if(diff < -180.0f){
+        mul_pos_base += 360;
+	}
+
+	pos_temp_pre = pos_temp;
+	float raw_mul_pos = mul_pos_base + pos_temp;
+
+	float alpha = 0.8f;
+	mul_pos_filtered = raw_mul_pos*alpha + mul_pos_filtered*(1-alpha);
+	mul_pos = mul_pos_filtered;
 }
 
 float encoder_get_multiturn(void) {

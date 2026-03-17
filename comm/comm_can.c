@@ -1725,17 +1725,41 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			break;
 
 		//
-		case CAN_PACKET_SET_KP_KD:
-		    can_Kp = *(float *)(data8);
-            can_Kd = *(float *)(data8 + 4);
-            break;
+		case CAN_PACKET_SET_KP_KD:{
+            int32_t index = 0;
+            uint32_t kp, kd;
+            kp = ((uint32_t) data8[index]) << 24 |
+				((uint32_t) data8[index + 1]) << 16 |
+				((uint32_t) data8[index + 2]) << 8 |
+				((uint32_t) data8[index + 3]);
+            index +=4;
 
-        case CAN_PACKET_FPS_CONTROL:
-            can_target_pos = (*(float *)(data8));
-            can_target_speed = (float)(*(int16_t *)(data8 + 4));
-            can_forward_torque = (float)(*(int16_t *)(data8 + 6));
+            kd = ((uint32_t) data8[index]) << 24 |
+    			((uint32_t) data8[index + 1]) << 16 |
+    			((uint32_t) data8[index + 2]) << 8 |
+    			((uint32_t) data8[index + 3]);
 
+            memcpy(&can_Kp, &kp, 4);
+            memcpy(&can_Kd, &kd, 4);
             break;
+		}
+
+        case CAN_PACKET_FPS_CONTROL:{
+            int32_t index = 0;
+
+            uint32_t target_pos;
+            target_pos = ((uint32_t) data8[index]) << 24 |
+				((uint32_t) data8[index + 1]) << 16 |
+				((uint32_t) data8[index + 2]) << 8 |
+				((uint32_t) data8[index + 3]);
+            index +=4;
+
+            can_target_speed = buffer_get_int16(data8, &index);
+            can_forward_torque = buffer_get_int16(data8, &index);
+            memcpy(&can_target_pos, &target_pos, 4);
+            break;
+        }
+
 
 
 

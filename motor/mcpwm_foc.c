@@ -369,7 +369,7 @@ void mcpwm_foc_init(mc_configuration *conf_m1, mc_configuration *conf_m2) {
  * 2. 将单圈和多圈控制的PID函数里都应用上分区控制 done
  * 3. 写一堆CAN协议 考虑如何用单片机设置和提取PID参数 done
  * 4. 写对应的库来调PID done
- * 5. 测试库 done 
+ * 5. 测试库 done
  * 6. 考虑如何储存调好的参数 下载？
  **************************************************************************/
 /*
@@ -798,7 +798,7 @@ void mcpwm_foc_set_pid_pos(float pos) {
  * 自定义多圈控制的状态更改函数，与上面的单圈控制对应
  * 状态设置好以后PID线程里会执行多圈控制函数
  */
-void mcpwm_foc_set_pid_pos_multiturn(float pos) {  
+void mcpwm_foc_set_pid_pos_multiturn(float pos) {
 	get_motor_now()->m_control_mode = CONTROL_MODE_POS_MULTITURN;
 	get_motor_now()->m_pos_pid_set = pos;  //设置多圈角度
 
@@ -821,7 +821,7 @@ void mcpwm_foc_set_current(float current) {
 	get_motor_now()->m_control_mode = CONTROL_MODE_CURRENT;
 	get_motor_now()->m_iq_set = current;
 	get_motor_now()->m_id_set = 0;
-	
+
 	if (fabsf(current) < get_motor_now()->m_conf->cc_min_current) {
 		return;
 	}
@@ -2573,7 +2573,7 @@ int mcpwm_foc_dc_cal(bool cal_undriven) {
 
 	stop_pwm_hw((motor_all_state_t*)&m_motor_1);
 	PHASE_FILTER_ON();
-	
+
 	// Start PWM on all phases at 50% to get a V0 measurement
 	TIM_SelectOCxM(TIM1, TIM_Channel_1, TIM_OCMode_PWM1);
 	TIM_CCxCmd(TIM1, TIM_Channel_1, TIM_CCx_Enable);
@@ -2586,10 +2586,10 @@ int mcpwm_foc_dc_cal(bool cal_undriven) {
 	TIM_SelectOCxM(TIM1, TIM_Channel_3, TIM_OCMode_PWM1);
 	TIM_CCxCmd(TIM1, TIM_Channel_3, TIM_CCx_Enable);
 	TIM_CCxNCmd(TIM1, TIM_Channel_3, TIM_CCxN_Enable);
-		
+
 	TIM_GenerateEvent(TIM1, TIM_EventSource_COM);
 
-	chThdSleep(1);	
+	chThdSleep(1);
 
 	for (float i = 0; i < samples; i++) {
 		current_sum[0] += m_motor_1.m_currents_adc[0];
@@ -2599,7 +2599,7 @@ int mcpwm_foc_dc_cal(bool cal_undriven) {
 		current_sum[2] += m_motor_1.m_currents_adc[2];
 		voltage_sum[2] += ADC_VOLTS(ADC_IND_SENS3);
 		chThdSleep(1);
-	}	
+	}
 
 	stop_pwm_hw((motor_all_state_t*)&m_motor_1);
 
@@ -2798,7 +2798,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 	float dt = 1.0 / (conf_now->foc_f_zv / 2.0);
 #endif
 
-	
+
 
 	if (conf_other->foc_control_sample_mode == FOC_CONTROL_SAMPLE_MODE_V0_V7_INTERPOL && !skip_interpolation) {
 		float interpolated_phase = motor_other->m_motor_state.phase + motor_other->m_speed_est_fast * dt * 0.5;  //相位插值计算
@@ -3435,7 +3435,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 		motor_now->m_motor_state.vd_int = motor_now->m_motor_state.vd;
 		motor_now->m_motor_state.vq_int = motor_now->m_motor_state.vq;
 
-		if (conf_now->foc_cc_decoupling == FOC_CC_DECOUPLING_BEMF || 
+		if (conf_now->foc_cc_decoupling == FOC_CC_DECOUPLING_BEMF ||
 				conf_now->foc_cc_decoupling == FOC_CC_DECOUPLING_CROSS_BEMF) {  //反电动势（BEMF）解耦
 			motor_now->m_motor_state.vq_int -= motor_now->m_pll_speed * conf_now->foc_motor_flux_linkage;
 		}
@@ -3511,6 +3511,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 	// Track position control angle
 	float angle_now = 0.0;
+	// 读取角度
 	if (encoder_is_configured()) {
 		if (conf_now->m_sensor_port_mode == SENSOR_PORT_MODE_TS5700N8501_MULTITURN) {
 			angle_now = encoder_read_deg_multiturn();
@@ -3553,7 +3554,7 @@ void mcpwm_foc_adc_int_handler(void *p, uint32_t flags) {
 
 	m_isr_motor = 0;
 	m_last_adc_isr_duration = timer_seconds_elapsed_since(t_start);
-	
+
 }
 
 // Private functions

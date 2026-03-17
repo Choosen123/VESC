@@ -55,13 +55,10 @@ static THD_FUNCTION(FPS_control_thread, arg);
 static THD_WORKING_AREA(FPS_control_thread_wa, 1024);
 
 // Private functions
-static void pwm_callback(void);
-static void terminal_test(int argc, const char **argv);
 
 // Private variables
 const volatile mc_configuration *mc_conf;
 
-static volatile bool stop_now = true;
 static volatile bool is_running = false;
 
 // Called when the custom application is started. Start our
@@ -70,18 +67,19 @@ void app_custom_start(void) {
 	chThdCreateStatic(FPS_control_thread_wa, sizeof(FPS_control_thread_wa),
 			NORMALPRIO, FPS_control_thread, NULL);
 
-	// Terminal commands for the VESC Tool terminal can be registered.
-	terminal_register_command_callback(
-			"custom_cmd",
-			"Print the number d",
-			"[d]",
-			terminal_test);
+	commands_init_plot("x", "y");
+	commands_plot_add_graph("current_set");
+	commands_plot_add_graph("current_pos");
+	commands_plot_add_graph("current_speed");
+	commands_plot_add_graph("target_pos");
+	commands_plot_add_graph("target_speed");
+	commands_plot_add_graph("target_torque");
+
 }
 
 // Called when the custom application is stopped. Stop our threads
 // and release callbacks.
 void app_custom_stop(void) {
-	terminal_unregister_callback(terminal_test);
 
 	while (is_running) {
 		chThdSleepMilliseconds(1);
@@ -95,15 +93,21 @@ void app_custom_configure(app_configuration *conf) {
 static THD_FUNCTION(FPS_control_thread, arg) {
 	(void)arg;
 
-	chRegSetThreadName("App Custom");
+	float x_axis = 0.0f;
+	int plot_div = 0;
 
-	is_running = true;
+	chRegSetThreadName("App Custom");
 
 	for(;;) {
 	    mc_conf = mc_interface_get_configuration();
 
 		float current_pos = mc_interface_get_pos_multiturn();   // 获取当前多圈位置,度
 		float current_speed = mc_interface_get_rpm();   // 获取当前速度, erpm
+
+		static float current_speed_filtered = 0.0f;
+		float alpha = 0.1f;
+		current_speed = current_speed * alpha + current_speed_filtered * (1-alpha);
+		current_speed_filtered = current_speed;
 
 		float current_pos_rad = current_pos * 2.0 * M_PI / 360.0; // 转换为弧度
 		float current_speed_rad_s = current_speed / (mc_conf->si_motor_poles/2) * 2.0 * M_PI / 60.0; // 转换为rad/s
@@ -113,30 +117,40 @@ static THD_FUNCTION(FPS_control_thread, arg) {
 
 		float i_set = can_Kp * pos_error + can_Kd * speed_error + can_forward_torque; // PID控制器输出电流设定值
 
-		float max = mc_conf->l_current_max_scale * mc_conf->l_current_max * 0.8; // 最大电流限制
+		// float max = mc_conf->l_current_max_scale * mc_conf->l_current_max * 0.8; // 最大电流限制
+		float max = 20.0f;
 
 		LIMIT(i_set, -max, max);
-		// mc_interface_set_current(i_set); // 设置电流
+		mc_interface_set_current(i_set); // 设置电流
 
-		commands_printf("i_set: %f", (double)i_set);
+		// commands_printf("i_set: %f, kp: %f, kd: %f, cur_pos: %f",
+		            // (double)i_set, (double)can_Kp, (double)can_Kd, (double)current_pos_rad);
+
+		if(++plot_div >= 20){
+            plot_div = 0;
+
+            commands_plot_set_graph(0);
+            commands_send_plot_points(x_axis, i_set);
+
+            commands_plot_set_graph(1);
+            commands_send_plot_points(x_axis, current_pos_rad);
+
+            commands_plot_set_graph(2);
+            commands_send_plot_points(x_axis, current_speed_rad_s);
+
+            commands_plot_set_graph(3);
+            commands_send_plot_points(x_axis, can_target_pos);
+
+            commands_plot_set_graph(4);
+            commands_send_plot_points(x_axis, can_target_speed);
+
+            commands_plot_set_graph(5);
+            commands_send_plot_points(x_axis, can_forward_torque);
+
+            x_axis++; // X轴递增
+		}
 
 		timeout_reset(); // Reset timeout if everything is OK.
 		chThdSleepMilliseconds(1);
-	}
-}
-
-// Callback function for the terminal command with arguments.
-static void terminal_test(int argc, const char **argv) {
-	if (argc == 2) {
-		int d = -1;
-		sscanf(argv[1], "%d", &d);
-
-		commands_printf("You have entered %d", d);
-
-		// For example, read the ADC inputs on the COMM header.
-		commands_printf("ADC1: %.2f V ADC2: %.2f V",
-				(double)ADC_VOLTS(ADC_IND_EXT), (double)ADC_VOLTS(ADC_IND_EXT2));
-	} else {
-		commands_printf("This command requires one argument.\n");
 	}
 }
