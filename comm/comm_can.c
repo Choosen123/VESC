@@ -17,6 +17,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
     */
 
+#include <stdint.h>
 #include <string.h>
 #include <math.h>
 #include "comm_can.h"
@@ -43,6 +44,14 @@
 #include "utils.h"
 #ifdef USE_LISPBM
 #include "lispif.h"
+#endif
+
+#ifdef FPS_CONTROL_APP
+float can_target_pos = 0.0;
+float can_target_speed = 0.0;
+float can_forward_torque = 0.0;
+float can_Kp = 0.0;
+float can_Kd = 0.0;
 #endif
 
 //#define SHOOT_TEST
@@ -401,7 +410,7 @@ void comm_can_set_eid_rx_callback(bool (*p_func)(uint32_t id, uint8_t *data, uin
  *    so that no reply is sent back.
  */
 //传递buffer去发送或者处理函数 很有意思的结点
-void comm_can_send_buffer(uint8_t controller_id, uint8_t *data, unsigned int len, uint8_t send) { 
+void comm_can_send_buffer(uint8_t controller_id, uint8_t *data, unsigned int len, uint8_t send) {
 	uint8_t send_buffer[8];
 
 	if (len <= 6) {
@@ -1225,7 +1234,7 @@ void comm_can_send_status4(uint8_t id, bool replace) {
 	uint8_t buffer[8];
 	comm_can_transmit_eid_replace(id | ((uint32_t)CAN_PACKET_STATUS_4 << 8),
 			buffer, send_index, replace, 0);
-	
+
 }
 
 void comm_can_send_status5(uint8_t id, bool replace) {
@@ -1233,7 +1242,7 @@ void comm_can_send_status5(uint8_t id, bool replace) {
 	uint8_t buffer[8];
 		comm_can_transmit_eid_replace(id | ((uint32_t)CAN_PACKET_STATUS_5 << 8),
 			buffer, send_index, replace, 0);
-	
+
 }
 
 void comm_can_send_status6(uint8_t id, bool replace) {
@@ -1264,7 +1273,7 @@ static THD_FUNCTION(cancom_read_thread, arg) {
 	while(!chThdShouldTerminateX()) {
 		// Feed watchdog
 		timeout_feed_WDT(THREAD_CANBUS);
-        
+
 		if (chEvtWaitAnyTimeout(ALL_EVENTS, MS2ST(10)) == 0) {
 			continue;
 		}
@@ -1482,7 +1491,7 @@ static void send_can_status(uint8_t msgs, uint8_t id) { //CAN状态发送函数�
  * @param {uint8_t} index 要发第几套参数
  * @return {*}            成功返回处，失败返回佛斯
  */
-bool subarea_PID_parameter_send(uint8_t index) {  
+bool subarea_PID_parameter_send(uint8_t index) {
 	uint8_t send_buffer[8] = {0};
 	uint8_t id = app_get_configuration()->controller_id;
 	CAN_PACKET_ID packet_id = CAN_PACKET_GET_SUBAREA_PARA1;
@@ -1530,7 +1539,7 @@ static THD_FUNCTION(cancom_status_thread, arg) {  //通过can 状态信息发送
 		}
 		chThdSleepMilliseconds(1);
 
-		
+
 		while (conf->can_status_rate_1 == 0) {
 			chThdSleepMilliseconds(10);
 			conf = app_get_configuration();
@@ -1641,7 +1650,7 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			ind = 0;
 			mc_interface_set_pid_pos_multiturn(buffer_get_float32(data8, 1e3, &ind));
 			//这里的scale如果还和控单圈位置一样的话，只能控 (2^31/1e6)=两千多度 的多圈，所以降低scale，现在能控 (2^31/1e3)= 2000000+ 的正负度数
-			//大概是6000圈 超出这个范围我也不知道会发生什么 =_= 
+			//大概是6000圈 超出这个范围我也不知道会发生什么 =_=
 			timeout_reset();
 			break;
 
@@ -1714,6 +1723,24 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 			mc_interface_update_pid_pos_offset(0, true);
 			timeout_reset();
 			break;
+
+		//
+		case CAN_PACKET_SET_KP_KD:
+		    can_Kp = *(float *)(data8);
+            can_Kd = *(float *)(data8 + 4);
+            break;
+
+        case CAN_PACKET_FPS_CONTROL:
+            can_target_pos = (*(float *)(data8));
+            can_target_speed = (float)(*(int16_t *)(data8 + 4));
+            can_forward_torque = (float)(*(int16_t *)(data8 + 6));
+
+            break;
+
+
+
+
+
 
 /****************************************** custom 部分结束~~ ********************************************/
 

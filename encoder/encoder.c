@@ -58,9 +58,9 @@ typedef enum {
 volatile routine_rate_t m_routine_rate = routine_rate_1k;
 static encoder_type_t m_encoder_type_now = ENCODER_TYPE_NONE;
 static float m_enc_custom_pos = 0.0;   //客制化编码器的角度储存在这里
- 
 
-static THD_WORKING_AREA(routine_thread_wa, 256);  
+
+static THD_WORKING_AREA(routine_thread_wa, 256);
 static THD_FUNCTION(routine_thread, arg);  //编码器专用线程和working area？
 
 // Private functions
@@ -165,7 +165,7 @@ bool encoder_init(volatile mc_configuration *conf) {  //编码器初始化函数
 				HW_SPI_PORT_MOSI, HW_SPI_PIN_MOSI, // miso (shared dat line)
 				{{NULL, NULL}, NULL, NULL} // Mutex
 		};
-		encoder_cfg_tle5012.sw_spi = sw_ssc;	
+		encoder_cfg_tle5012.sw_spi = sw_ssc;
 
 		if (!enc_tle5012_init_sw_ssc(&encoder_cfg_tle5012)) {
 			m_encoder_type_now = ENCODER_TYPE_NONE;
@@ -277,7 +277,7 @@ bool encoder_init(volatile mc_configuration *conf) {  //编码器初始化函数
  * 1. ABI初始化用到ChibiOS的encoder库，好像读角度要用定时器中断；AS5047似乎只是单纯的SPI通信，没有用到定时器中断 done
  * 2. ABI外部中断引脚需要去hw里面改，配置也要改 done
  * 3. 检查定时器中断里有没有写什么会产生冲突的地方，或是任何采集数据过程 done as5047的SPI和ABI可以和其它接口同时使用
- * 4. 数据融合 done 
+ * 4. 数据融合 done
  */
 /**************************************************************************************************/
 
@@ -285,11 +285,11 @@ bool encoder_init(volatile mc_configuration *conf) {  //编码器初始化函数
 #if defined (USE_CUSTOM_ENCODER1)
 		m_encoder_type_now = ENCODER_TYPE_CUSTOM;
 		SENSOR_PORT_3V3();
-		
+
 		conf->m_encoder_counts = 4000;
 		encoder_cfg_ABI.counts = conf->m_encoder_counts;
 
-		if (!enc_abi_init(&encoder_cfg_ABI)) {   //先尝试使用内置库  
+		if (!enc_abi_init(&encoder_cfg_ABI)) {   //先尝试使用内置库
 			m_encoder_type_now = ENCODER_TYPE_NONE;
 			return false;
 		}
@@ -301,8 +301,8 @@ bool encoder_init(volatile mc_configuration *conf) {  //编码器初始化函数
 		}
 
 		timer_start(routine_rate_10k);  //5047好像是占用一个线程的？
-		encoder_set_custom_callbacks(custom_as5047_read_deg, 
-									 custom_as5047_fault_check, 
+		encoder_set_custom_callbacks(custom_as5047_read_deg,
+									 custom_as5047_fault_check,
 									 custom_as5047_print_info);  //设置回调函数
 
 		res = true;
@@ -415,7 +415,7 @@ void encoder_set_custom_callbacks (   //可以自己写自己的编码器
 #if defined (USE_CUSTOM_ENCODER1)
 /**
  * as5047读角度，SPI绝对值和ABI融合返回位置
- * 
+ *
  */
 /**************************************************************************************************/
 bool custom_encoder_fault = false;
@@ -620,7 +620,7 @@ void encoder_check_faults(volatile mc_configuration *m_conf, bool is_second_moto
 				mc_interface_fault_stop(FAULT_CODE_ENCODER_NO_MAGNET, is_second_motor, false);
 			}
 			break;
-		
+
 		case SENSOR_PORT_MODE_TLE5012_SSC_HW:
 		case SENSOR_PORT_MODE_TLE5012_SSC_SW:
 			if (encoder_cfg_tle5012.state.spi_error_rate > 0.10) {
@@ -732,7 +732,7 @@ static void terminal_encoder(int argc, const char **argv) {
 	switch (mcconf->m_sensor_port_mode) {
 	case SENSOR_PORT_MODE_AS5047_SPI:
 		commands_printf("SPI encoder value: %d, errors: %d, error rate: %.3f %%",
-				encoder_cfg_as504x.state.spi_val, 
+				encoder_cfg_as504x.state.spi_val,
 				encoder_cfg_as504x.state.spi_communication_error_count,
 				(double)(encoder_cfg_as504x.state.spi_error_rate * 100.0));
 

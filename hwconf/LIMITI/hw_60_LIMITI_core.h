@@ -18,7 +18,7 @@
     */
 
 #ifndef __HW_60_CORE_LIMITI_H__
-#define __HW_60_CORE_LIMITI_H__ 
+#define __HW_60_CORE_LIMITI_H__
 
 //#include "stdbool.h"
 //#include "hw_60_LIMITI_core.h"
@@ -264,7 +264,7 @@
 #define HW_HALL_ENC_PIN2		7
 #define HW_HALL_ENC_GPIO3		GPIOC
 #define HW_HALL_ENC_PIN3		8
-   
+
 #define HW_ENC_TIM				TIM3
 #define HW_ENC_TIM_AF			GPIO_AF_TIM3   //timer3作为所有编码器的定时计数基准？（如果有需要）
 #define HW_ENC_TIM_CLK_EN()		RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM3, ENABLE)
@@ -309,7 +309,7 @@
 #endif
 
 // MPU9250  //惯导模块端口定义，用不到
-/* 
+/*
 #if defined (HW_IS_LIMITI_MK1)
 #define MPU9X50_SDA_GPIO		GPIOB
 #define MPU9X50_SDA_PIN			2

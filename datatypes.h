@@ -459,7 +459,7 @@ typedef struct {
 	bool foc_encoder_inverted;
 	float foc_encoder_ratio;
 	float foc_motor_l;
-	float foc_motor_ld_lq_diff;  //ld-lq diff 整定可得 
+	float foc_motor_ld_lq_diff;  //ld-lq diff 整定可得
 	float foc_motor_r;
 	float foc_motor_flux_linkage;    //磁通量
 	float foc_observer_gain;
@@ -1225,6 +1225,12 @@ typedef enum {
 	CAN_PACKET_SELFLOCK_RELEASE	            = 86,
 	CAN_PACKET_RELEASE_MOTER                = 94,
 	CAN_PACKET_SET_ZERO_POS                = 95,
+
+	//
+	CAN_PACKET_SET_KP_KD                  = 96,
+	CAN_PACKET_FPS_CONTROL                   = 97,
+	//
+
 	CAN_PACKET_MAKE_ENUM_32_BITS = 0xFFFFFFFF,
 } CAN_PACKET_ID;
 

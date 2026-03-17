@@ -20,7 +20,7 @@
 #ifndef FOC_MATH_H_
 #define FOC_MATH_H_
 
-#include "C:\Users\MikanseiP\Desktop\VESC_Code\datatypes.h"
+#include "datatypes.h"
 #include "mc_interface.h"
 
 // Types
