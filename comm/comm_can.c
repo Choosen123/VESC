@@ -1753,10 +1753,20 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
 				((uint32_t) data8[index + 2]) << 8 |
 				((uint32_t) data8[index + 3]);
             index +=4;
-
-            can_target_speed = buffer_get_int16(data8, &index);
-            can_forward_torque = buffer_get_int16(data8, &index);
             memcpy(&can_target_pos, &target_pos, 4);
+
+            int32_t target_speed = (uint32_t)data8[index] << 16;
+            target_speed |= ((uint32_t)data8[index + 1]) << 8;
+            target_speed |= (uint32_t)data8[index + 2];
+
+            if(target_speed & 0x800000) {
+                target_speed |= 0xFF000000;
+            }
+            can_target_speed = target_speed / 100.0f;
+
+            int8_t target_torque = (int8_t)data8[index + 3];
+            can_forward_torque = target_torque;
+
             break;
         }
 

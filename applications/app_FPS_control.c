@@ -123,8 +123,8 @@ static THD_FUNCTION(FPS_control_thread, arg) {
 		LIMIT(i_set, -max, max);
 		mc_interface_set_current(i_set); // 设置电流
 
-		// commands_printf("i_set: %f, kp: %f, kd: %f, cur_pos: %f",
-		            // (double)i_set, (double)can_Kp, (double)can_Kd, (double)current_pos_rad);
+		commands_printf("t_pos: %f, t_speed: %f, t_torque: %f",
+		            (double)can_target_pos, (double)can_target_speed, (double)can_forward_torque);
 
 		if(++plot_div >= 20){
             plot_div = 0;
