@@ -19,6 +19,8 @@
 
 #include "app.h"
 #include "ch.h"
+#include "chsystypes.h"
+#include "chthreads.h"
 #include "hal.h"
 
 // Some useful includes
@@ -58,13 +60,13 @@ static THD_WORKING_AREA(FPS_control_thread_wa, 1024);
 
 // Private variables
 const volatile mc_configuration *mc_conf;
-
+static thread_t *fps_thread = NULL;
 static volatile bool is_running = false;
 
 // Called when the custom application is started. Start our
 // threads here and set up callbacks.
 void app_custom_start(void) {
-	chThdCreateStatic(FPS_control_thread_wa, sizeof(FPS_control_thread_wa),
+	fps_thread = chThdCreateStatic(FPS_control_thread_wa, sizeof(FPS_control_thread_wa),
 			NORMALPRIO, FPS_control_thread, NULL);
 
 	commands_init_plot("x", "y");
@@ -80,6 +82,7 @@ void app_custom_start(void) {
 // Called when the custom application is stopped. Stop our threads
 // and release callbacks.
 void app_custom_stop(void) {
+    chThdTerminate(fps_thread);
 
 	while (is_running) {
 		chThdSleepMilliseconds(1);
@@ -97,6 +100,7 @@ static THD_FUNCTION(FPS_control_thread, arg) {
 	int plot_div = 0;
 
 	chRegSetThreadName("App Custom");
+	is_running =  true;
 
 	for(;;) {
 	    mc_conf = mc_interface_get_configuration();
@@ -123,8 +127,8 @@ static THD_FUNCTION(FPS_control_thread, arg) {
 		LIMIT(i_set, -max, max);
 		mc_interface_set_current(i_set); // 设置电流
 
-		commands_printf("t_pos: %f, t_speed: %f, t_torque: %f",
-		            (double)can_target_pos, (double)can_target_speed, (double)can_forward_torque);
+		// commands_printf("t_pos: %f, t_speed: %f, t_torque: %f",
+		//             (double)can_target_pos, (double)can_target_speed, (double)can_forward_torque);
 
 		if(++plot_div >= 20){
             plot_div = 0;
@@ -150,7 +154,14 @@ static THD_FUNCTION(FPS_control_thread, arg) {
             x_axis++; // X轴递增
 		}
 
+		if(chThdShouldTerminateX()){
+		    is_running = false;
+			mc_interface_set_current(0.0f); // 停止电机
+			return;
+		}
+
 		timeout_reset(); // Reset timeout if everything is OK.
+
 		chThdSleepMilliseconds(1);
 	}
 }
