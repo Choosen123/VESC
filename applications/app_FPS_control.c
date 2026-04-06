@@ -121,8 +121,8 @@ static THD_FUNCTION(FPS_control_thread, arg) {
 
 		float i_set = can_Kp * pos_error + can_Kd * speed_error + can_forward_torque; // PID控制器输出电流设定值
 
-		// float max = mc_conf->l_current_max_scale * mc_conf->l_current_max * 0.8; // 最大电流限制
-		float max = 20.0f;
+		float max = mc_conf->l_current_max_scale * mc_conf->l_current_max * 0.8; // 最大电流限制
+		// float max = 20.0f;
 
 		LIMIT(i_set, -max, max);
 		mc_interface_set_current(i_set); // 设置电流
