@@ -43,6 +43,12 @@ extern float can_Kp;
 extern float can_Kd;
 extern float can_forward_torque;
 
+static float i_cmd_prev = 0.0f;
+const float dt = 0.001f; // 1kHz control loop
+const float raise_rate = 1000.0f; // A/s
+const float fall_rate = 1500.0f; // A/s
+
+
 #define LIMIT(value, min, max) \
     do { \
         if ((value) <= (min)) { \
@@ -109,22 +115,34 @@ static THD_FUNCTION(FPS_control_thread, arg) {
 		float current_speed = mc_interface_get_rpm();   // 获取当前速度, erpm
 
 		static float current_speed_filtered = 0.0f;
-		float alpha = 0.1f;
+		float alpha = 0.8f;
 		current_speed = current_speed * alpha + current_speed_filtered * (1-alpha);
 		current_speed_filtered = current_speed;
 
 		float current_pos_rad = current_pos * 2.0 * M_PI / 360.0; // 转换为弧度
-		float current_speed_rad_s = current_speed / (mc_conf->si_motor_poles/2) * 2.0 * M_PI / 60.0; // 转换为rad/s
+		float current_speed_rad_s = current_speed_filtered / (mc_conf->si_motor_poles/2) * 2.0 * M_PI / 60.0; // 转换为rad/s
 
 		float pos_error = can_target_pos - current_pos_rad; // 位置误差
 		float speed_error = can_target_speed - current_speed_rad_s; // 速度误差
 
-		float i_set = can_Kp * pos_error + can_Kd * speed_error + can_forward_torque; // PID控制器输出电流设定值
+		float i_raw = can_Kp * pos_error + can_Kd * speed_error + can_forward_torque; // PID控制器输出电流设定值
 
 		float max = mc_conf->l_current_max_scale * mc_conf->l_current_max * 0.8; // 最大电流限制
 		// float max = 20.0f;
 
-		LIMIT(i_set, -max, max);
+		LIMIT(i_raw, -max, max);
+
+		// 电流斜率限制
+		float di = i_raw - i_cmd_prev;
+		if (di > raise_rate * dt) {
+            i_raw = i_cmd_prev + raise_rate * dt;
+		}else if (di < -fall_rate * dt) {
+            i_raw = i_cmd_prev - fall_rate * dt;
+        }
+
+		float i_set = i_raw;
+		i_cmd_prev = i_set;
+
 		mc_interface_set_current(i_set); // 设置电流
 
 		// commands_printf("t_pos: %f, t_speed: %f, t_torque: %f",

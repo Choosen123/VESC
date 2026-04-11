@@ -1764,8 +1764,8 @@ static void decode_msg(uint32_t eid, uint8_t *data8, int len, bool is_replaced) 
             }
             can_target_speed = target_speed / 100.0f;
 
-            int8_t target_torque = (int8_t)data8[index + 3];
-            can_forward_torque = target_torque;
+            uint8_t torque_raw = data8[index + 3];
+            can_forward_torque = (torque_raw - 128) / 127.0f * 25.0f;
 
             break;
         }
